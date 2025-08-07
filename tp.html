@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double Chiffrement César-Affine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .section {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: #075e54;
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #e5ddd5;
+        }
+
+        .message {
+            max-width: 70%;
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 10px;
+            position: relative;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .sent {
+            background: #dcf8c6;
+            margin-left: auto;
+            border-radius: 10px 10px 0 10px;
+        }
+
+        .received {
+            background: white;
+            margin-right: auto;
+            border-radius: 10px 10px 10px 0;
+        }
+
+        .message-input {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #128c7e;
+        }
+
+        .crypto-options {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .crypto-options select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .crypto-keys {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .crypto-keys input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .message-transition {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .message-transition::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.5);
+            animation: slide 1s ease-in-out;
+        }
+
+        .explanation {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .step-by-step {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: stepAppear 0.5s ease-out;
+        }
+
+        .step-number {
+            width: 25px;
+            height: 25px;
+            background: #075e54;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-input {
+            font-family: monospace;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .step-output {
+            font-family: monospace;
+            padding: 5px;
+            background: #e3f2fd;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+
+        .step-arrow {
+            color: #075e54;
+            font-weight: bold;
+        }
+
+        /* Nouvelles animations */
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent }
+        }
+
+        .typing-animation {
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid #075e54;
+            animation: typing 3.5s steps(40, end), blink .75s step-end infinite;
+        }
+
+        @keyframes stepReveal {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-reveal {
+            animation: stepReveal 1s ease-out forwards;
+        }
+
+        @keyframes highlight {
+            0% { background: #e3f2fd; }
+            50% { background: #075e54; color: white; }
+            100% { background: #e3f2fd; }
+        }
+
+        .highlight-animation {
+            animation: highlight 2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slide {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100%); }
+        }
+
+        @keyframes cryptoFlow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes stepAppear {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #075e54;
+        }
+
+        .key-display {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+
+        .step-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .step-formula {
+            font-family: monospace;
+            background: #e3f2fd;
+            padding: 5px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+
+        .step-explanation {
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .step-visual {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .alphabet-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+
+        .alphabet-char {
+            width: 20px;
+            text-align: center;
+            padding: 2px;
+            border-radius: 3px;
+        }
+
+        .alphabet-char.highlight {
+            background: #075e54;
+            color: white;
+        }
+
+        .final-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #075e54;
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .final-result-label {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .final-result-value {
+            font-family: monospace;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .encryption-steps {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .encryption-step {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .encryption-step-title {
+            font-weight: bold;
+            color: #075e54;
+            margin-bottom: 5px;
+        }
+
+        .encryption-step-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .encryption-input {
+            font-family: monospace;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .encryption-arrow {
+            color: #075e54;
+            font-weight: bold;
+        }
+
+        .encryption-output {
+            font-family: monospace;
+            padding: 5px;
+            background: #e3f2fd;
+            border-radius: 3px;
+        }
+
+        .decryption-steps {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .decryption-step {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .decryption-step-title {
+            font-weight: bold;
+            color: #075e54;
+            margin-bottom: 5px;
+        }
+
+        .decryption-step-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .decryption-input {
+            font-family: monospace;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .decryption-arrow {
+            color: #075e54;
+            font-weight: bold;
+        }
+
+        .decryption-output {
+            font-family: monospace;
+            padding: 5px;
+            background: #e3f2fd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Section 1: Chat Original -->
+        <div class="section">
+            <div class="section-title">Chat Original</div>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h2>Conversation</h2>
+                </div>
+                <div class="chat-messages" id="original-messages"></div>
+                <div class="message-input">
+                    <input type="text" id="message-input" placeholder="Tapez votre message...">
+                    <button onclick="sendMessage('original')">Envoyer</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Message Chiffré -->
+        <div class="section">
+            <div class="section-title">Message Chiffré</div>
+            <div class="crypto-options">
+                <select id="crypto-method">
+                    <option value="caesar">Chiffrement César</option>
+                    <option value="affine">Chiffrement Affine</option>
+                    <option value="aes">Chiffrement AES</option>
+                    <option value="rsa">Chiffrement RSA</option>
+                    <option value="signature">Signature Numérique</option>
+                    <option value="double">Double Chiffrement</option>
+                </select>
+                <div class="crypto-keys">
+                    <input type="number" id="caesar-key" placeholder="Clé César (0-25)" min="0" max="25">
+                    <input type="number" id="affine-a" placeholder="Clé Affine a" min="1">
+                    <input type="number" id="affine-b" placeholder="Clé Affine b" min="0" max="25">
+                </div>
+                <div class="explanation" id="crypto-explanation">
+                    Sélectionnez une méthode de chiffrement pour voir l'explication
+                </div>
+                <div class="step-by-step" id="step-by-step">
+                    <!-- Les étapes seront ajoutées dynamiquement ici -->
+                </div>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="encrypted-messages"></div>
+            </div>
+        </div>
+
+        <!-- Section 3: Message Déchiffré -->
+        <div class="section">
+            <div class="section-title">Message Déchiffré</div>
+            <div class="chat-container">
+                <div class="chat-messages" id="decrypted-messages"></div>
+                <div class="message-input">
+                    <input type="text" id="decrypted-input" placeholder="Tapez votre message...">
+                    <button onclick="sendMessage('decrypted')">Envoyer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cryptoExplanations = {
+            caesar: "Le chiffrement César déplace chaque lettre d'un nombre fixe de positions dans l'alphabet. Par exemple, avec une clé de 3, A devient D, B devient E, etc.",
+            affine: "Le chiffrement Affine utilise une transformation mathématique de la forme y = (a * x + b) mod 26, où a doit être premier avec 26.",
+            aes: "AES (Advanced Encryption Standard) est un algorithme de chiffrement symétrique moderne utilisant des blocs de 128 bits et des clés de 128, 192 ou 256 bits.",
+            rsa: "RSA est un algorithme de chiffrement asymétrique utilisant une paire de clés : une clé publique pour chiffrer et une clé privée pour déchiffrer.",
+            signature: "La signature numérique utilise une clé privée pour signer un message et une clé publique pour vérifier l'authenticité de la signature.",
+            double: "Le double chiffrement combine deux méthodes de chiffrement pour renforcer la sécurité. Ici, nous combinons César et Affine."
+        };
+
+        function updateExplanation() {
+            const method = document.getElementById('crypto-method').value;
+            document.getElementById('crypto-explanation').textContent = cryptoExplanations[method];
+        }
+
+        function displayMessage(message, containerId, type) {
+            const container = document.getElementById(containerId);
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type} message-transition`;
+            
+            if (containerId === 'original-messages') {
+                // Animation de frappe pour le message original
+                messageDiv.innerHTML = `<span class="typing-animation">${message}</span>`;
+            } else {
+                messageDiv.textContent = message;
+            }
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage(source) {
+            const input = source === 'original' ? 
+                document.getElementById('message-input') : 
+                document.getElementById('decrypted-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Afficher le message original
+            displayMessage(message, 'original-messages', 'sent');
+
+            // Chiffrer le message et montrer les étapes
+            const method = document.getElementById('crypto-method').value;
+            const encryptedMessage = encryptMessage(message, method);
+            showStepByStep(message, method);
+            displayMessage(encryptedMessage, 'encrypted-messages', 'sent');
+
+            // Afficher le message original dans la section déchiffrée
+            displayMessage(message, 'decrypted-messages', 'sent');
+
+            input.value = '';
+        }
+
+        function showStepByStep(message, method) {
+            const stepContainer = document.getElementById('step-by-step');
+            stepContainer.innerHTML = ''; // Effacer les étapes précédentes
+
+            switch(method) {
+                case 'caesar':
+                    showCaesarSteps(message);
+                    break;
+                case 'affine':
+                    showAffineSteps(message);
+                    break;
+                case 'aes':
+                    showAESSteps(message);
+                    break;
+                case 'rsa':
+                    showRSASteps(message);
+                    break;
+                case 'signature':
+                    showSignatureSteps(message);
+                    break;
+                case 'double':
+                    showDoubleSteps(message);
+                    break;
+            }
+        }
+
+        function addStep(number, description, input, output, details = null) {
+            const stepContainer = document.getElementById('step-by-step');
+            const step = document.createElement('div');
+            step.className = 'step step-reveal';
+            
+            let detailsHtml = '';
+            if (details) {
+                detailsHtml = `
+                    <div class="step-details">
+                        ${details.formula ? `<div class="step-formula highlight-animation">${details.formula}</div>` : ''}
+                        ${details.explanation ? `<div class="step-explanation">${details.explanation}</div>` : ''}
+                        ${details.visual ? `<div class="step-visual">${details.visual}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            step.innerHTML = `
+                <div class="step-number">${number}</div>
+                <div class="step-content">
+                    <div>${description}</div>
+                    <div style="display: flex; align-items: center; margin-top: 5px;">
+                        <span class="step-input">${input}</span>
+                        <span class="step-arrow">→</span>
+                        <span class="step-output">${output}</span>
+                    </div>
+                    ${detailsHtml}
+                </div>
+            `;
+            
+            stepContainer.appendChild(step);
+        }
+
+        function createAlphabetVisual(char, shift) {
+            let html = '<div class="alphabet-row">';
+            for (let i = 0; i < 26; i++) {
+                const currentChar = String.fromCharCode(65 + i);
+                const isHighlight = currentChar === char.toUpperCase();
+                html += `<div class="alphabet-char ${isHighlight ? 'highlight' : ''}">${currentChar}</div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function showCaesarSteps(message) {
+            const key = parseInt(document.getElementById('caesar-key').value) || 0;
+            let stepNumber = 1;
+
+            message.split('').forEach((char, index) => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const shift = char === char.toLowerCase() ? 97 : 65;
+                    const originalPos = code - shift;
+                    const newPos = (originalPos + key) % 26;
+                    const newChar = String.fromCharCode(newPos + shift);
+
+                    addStep(
+                        stepNumber++,
+                        `Chiffrement de la lettre '${char}'`,
+                        `${char} (position ${originalPos})`,
+                        `${newChar} (position ${newPos})`,
+                        {
+                            formula: `Nouvelle position = (${originalPos} + ${key}) mod 26 = ${newPos}`,
+                            explanation: `La lettre est décalée de ${key} positions dans l'alphabet.`,
+                            visual: createAlphabetVisual(char, key)
+                        }
+                    );
+                }
+            });
+        }
+
+        function showAffineSteps(message) {
+            const a = parseInt(document.getElementById('affine-a').value) || 1;
+            const b = parseInt(document.getElementById('affine-b').value) || 0;
+            let stepNumber = 1;
+
+            message.split('').forEach((char, index) => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const shift = char === char.toLowerCase() ? 97 : 65;
+                    const x = code - shift;
+                    const y = (a * x + b) % 26;
+                    const newChar = String.fromCharCode(y + shift);
+
+                    addStep(
+                        stepNumber++,
+                        `Transformation affine de '${char}'`,
+                        `${char} (x=${x})`,
+                        `${newChar} (y=${y})`,
+                        {
+                            formula: `y = (${a} × ${x} + ${b}) mod 26 = ${y}`,
+                            explanation: `La transformation affine utilise une fonction linéaire pour transformer chaque lettre.`
+                        }
+                    );
+                }
+            });
+        }
+
+        function showAESSteps(message) {
+            let stepNumber = 1;
+            const blockSize = 16;
+            
+            for (let i = 0; i < message.length; i += blockSize) {
+                const block = message.slice(i, i + blockSize);
+                const encryptedBlock = simulateAES(block);
+                
+                addStep(
+                    stepNumber++,
+                    `Chiffrement du bloc ${i/blockSize + 1}`,
+                    block,
+                    encryptedBlock,
+                    {
+                        formula: "AES utilise des opérations de substitution, permutation et mélange",
+                        explanation: "Chaque bloc de 16 caractères est transformé à travers plusieurs rounds de chiffrement."
+                    }
+                );
+            }
+        }
+
+        function showRSASteps(message) {
+            let stepNumber = 1;
+            
+            message.split('').forEach((char, index) => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const encryptedCode = (code * 3) % 26 + 65;
+                    const encryptedChar = String.fromCharCode(encryptedCode);
+                    
+                    addStep(
+                        stepNumber++,
+                        `Chiffrement RSA de '${char}'`,
+                        `${char} (${code})`,
+                        `${encryptedChar} (${encryptedCode})`,
+                        {
+                            formula: `c = (m^e) mod n = (${code}^3) mod 26 = ${encryptedCode}`,
+                            explanation: "RSA utilise l'exponentiation modulaire pour chiffrer chaque caractère."
+                        }
+                    );
+                }
+            });
+        }
+
+        function showSignatureSteps(message) {
+            addStep(1, "Génération de la signature", message, message + " [SIGNED]", {
+                formula: "Signature = Hash(message) chiffré avec la clé privée",
+                explanation: "La signature numérique garantit l'authenticité et l'intégrité du message."
+            });
+        }
+
+        function showDoubleSteps(message) {
+            const caesarKey = parseInt(document.getElementById('caesar-key').value) || 0;
+            const affineA = parseInt(document.getElementById('affine-a').value) || 1;
+            const affineB = parseInt(document.getElementById('affine-b').value) || 0;
+            let stepNumber = 1;
+
+            // Étape 1: Chiffrement César
+            const caesarResult = caesarCipher(message, caesarKey);
+            addStep(
+                stepNumber++,
+                "Première étape: Chiffrement César",
+                message,
+                caesarResult,
+                {
+                    formula: `Décalage de ${caesarKey} positions`,
+                    explanation: "Le message est d'abord chiffré avec le chiffrement de César.",
+                    visual: createAlphabetVisual(message[0], caesarKey)
+                }
+            );
+
+            // Étape 2: Chiffrement Affine
+            const finalResult = affineCipher(caesarResult, affineA, affineB);
+            addStep(
+                stepNumber++,
+                "Deuxième étape: Chiffrement Affine",
+                caesarResult,
+                finalResult,
+                {
+                    formula: `y = (${affineA} × x + ${affineB}) mod 26`,
+                    explanation: "Le résultat est ensuite chiffré avec le chiffrement affine.",
+                    visual: createAlphabetVisual(caesarResult[0], 0)
+                }
+            );
+
+            // Ajouter une section détaillée pour le premier caractère
+            const firstChar = message[0];
+            if (firstChar.match(/[a-z]/i)) {
+                const stepContainer = document.getElementById('step-by-step');
+                const detailedSteps = document.createElement('div');
+                detailedSteps.className = 'encryption-steps';
+                
+                // Détail du chiffrement César
+                const caesarStep = document.createElement('div');
+                caesarStep.className = 'encryption-step';
+                const code = firstChar.charCodeAt(0);
+                const shift = firstChar === firstChar.toLowerCase() ? 97 : 65;
+                const originalPos = code - shift;
+                const newPos = (originalPos + caesarKey) % 26;
+                const newChar = String.fromCharCode(newPos + shift);
+                
+                caesarStep.innerHTML = `
+                    <div class="encryption-step-title">Détail du chiffrement César pour '${firstChar}'</div>
+                    <div class="encryption-step-content">
+                        <span class="encryption-input">${firstChar} (${originalPos})</span>
+                        <span class="encryption-arrow">→</span>
+                        <span class="encryption-output">${newChar} (${newPos})</span>
+                    </div>
+                `;
+                
+                // Détail du chiffrement Affine
+                const affineStep = document.createElement('div');
+                affineStep.className = 'encryption-step';
+                const affineX = newPos;
+                const affineY = (affineA * affineX + affineB) % 26;
+                const finalChar = String.fromCharCode(affineY + shift);
+                
+                affineStep.innerHTML = `
+                    <div class="encryption-step-title">Détail du chiffrement Affine pour '${newChar}'</div>
+                    <div class="encryption-step-content">
+                        <span class="encryption-input">${newChar} (${affineX})</span>
+                        <span class="encryption-arrow">→</span>
+                        <span class="encryption-output">${finalChar} (${affineY})</span>
+                    </div>
+                `;
+                
+                detailedSteps.appendChild(caesarStep);
+                detailedSteps.appendChild(affineStep);
+                stepContainer.appendChild(detailedSteps);
+            }
+        }
+
+        function encryptMessage(message, method) {
+            const caesarKey = parseInt(document.getElementById('caesar-key').value) || 0;
+            const affineA = parseInt(document.getElementById('affine-a').value) || 1;
+            const affineB = parseInt(document.getElementById('affine-b').value) || 0;
+
+            switch(method) {
+                case 'caesar':
+                    return caesarCipher(message, caesarKey);
+                case 'affine':
+                    return affineCipher(message, affineA, affineB);
+                case 'aes':
+                    return simulateAES(message);
+                case 'rsa':
+                    return simulateRSA(message);
+                case 'signature':
+                    return simulateSignature(message);
+                case 'double':
+                    const temp = caesarCipher(message, caesarKey);
+                    return affineCipher(temp, affineA, affineB);
+                default:
+                    return message;
+            }
+        }
+
+        function decryptMessage(message, method) {
+            const caesarKey = parseInt(document.getElementById('caesar-key').value) || 0;
+            const affineA = parseInt(document.getElementById('affine-a').value) || 1;
+            const affineB = parseInt(document.getElementById('affine-b').value) || 0;
+
+            switch(method) {
+                case 'caesar':
+                    return caesarDecipher(message, caesarKey);
+                case 'affine':
+                    return affineDecipher(message, affineA, affineB);
+                case 'aes':
+                    return simulateAESDecrypt(message);
+                case 'rsa':
+                    return simulateRSADecrypt(message);
+                case 'signature':
+                    return simulateSignatureVerify(message);
+                case 'double':
+                    const temp = affineDecipher(message, affineA, affineB);
+                    return caesarDecipher(temp, caesarKey);
+                default:
+                    return message;
+            }
+        }
+
+        function caesarCipher(text, key) {
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const shift = char === char.toLowerCase() ? 97 : 65;
+                    return String.fromCharCode(((code - shift + key) % 26) + shift);
+                }
+                return char;
+            }).join('');
+        }
+
+        function caesarDecipher(text, key) {
+            return caesarCipher(text, -key);
+        }
+
+        function affineCipher(text, a, b) {
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const shift = char === char.toLowerCase() ? 97 : 65;
+                    const x = code - shift;
+                    const y = (a * x + b) % 26;
+                    return String.fromCharCode(y + shift);
+                }
+                return char;
+            }).join('');
+        }
+
+        function affineDecipher(text, a, b) {
+            let aInv = 0;
+            for (let i = 0; i < 26; i++) {
+                if ((a * i) % 26 === 1) {
+                    aInv = i;
+                    break;
+                }
+            }
+
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    const code = char.charCodeAt(0);
+                    const shift = char === char.toLowerCase() ? 97 : 65;
+                    const y = code - shift;
+                    const x = (aInv * (y - b)) % 26;
+                    return String.fromCharCode(x + shift);
+                }
+                return char;
+            }).join('');
+        }
+
+        function simulateAES(text) {
+            // Simulation simple d'AES
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    return String.fromCharCode(char.charCodeAt(0) ^ 0x0F);
+                }
+                return char;
+            }).join('');
+        }
+
+        function simulateAESDecrypt(text) {
+            return simulateAES(text); // AES est symétrique
+        }
+
+        function simulateRSA(text) {
+            // Simulation simple de RSA
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    return String.fromCharCode((char.charCodeAt(0) * 3) % 26 + 65);
+                }
+                return char;
+            }).join('');
+        }
+
+        function simulateRSADecrypt(text) {
+            // Simulation simple du déchiffrement RSA
+            return text.split('').map(char => {
+                if (char.match(/[a-z]/i)) {
+                    return String.fromCharCode((char.charCodeAt(0) * 9) % 26 + 65);
+                }
+                return char;
+            }).join('');
+        }
+
+        function simulateSignature(text) {
+            // Simulation simple d'une signature numérique
+            return text + " [SIGNED]";
+        }
+
+        function simulateSignatureVerify(text) {
+            // Simulation simple de la vérification de signature
+            return text.replace(" [SIGNED]", "");
+        }
+
+        // Gérer la touche Entrée
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage('original');
+            }
+        });
+
+        document.getElementById('decrypted-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage('decrypted');
+            }
+        });
+
+        // Mettre à jour l'explication lors du changement de méthode
+        document.getElementById('crypto-method').addEventListener('change', updateExplanation);
+        updateExplanation();
+    </script>
+</body>
+</html> 

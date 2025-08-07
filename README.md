@@ -72,12 +72,24 @@ Le projet inclut plusieurs types de visualisations éducatives :
 
 ```
 projet-sécurité/
-├── index.html          # Interface web principale
+├── index.html          # Interface web principale (53KB)
+├── portfolio.html      # Portfolio professionnel
+├── CV.html            # CV détaillé
 ├── main.py            # Interface Python
 ├── cipher_functions.py # Fonctions de chiffrement
+├── tp.html            # Version alternative
 ├── README.md          # Documentation
-└── tp.html           # Version alternative
+├── .gitignore         # Configuration Git
+└── LICENSE            # Licence MIT
 ```
+
+### **🎯 Fichiers Principaux:**
+
+- **`index.html`** - Application web interactive de démonstration cryptographique
+- **`portfolio.html`** - Portfolio professionnel avec design moderne
+- **`CV.html`** - CV détaillé avec toutes les compétences
+- **`main.py`** - Implémentation Python du double chiffrement
+- **`cipher_functions.py`** - Fonctions de chiffrement et déchiffrement
 
 ## 🎯 Exemple d'utilisation
 
